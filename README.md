@@ -1,0 +1,1 @@
+[![Netlify Status](https://api.netlify.com/api/v1/badges/7dbcf2b6-5a63-42cc-a589-f2fa76b98f7d/deploy-status)](https://app.netlify.com/projects/automation-khelifi-salmen/deploys)
