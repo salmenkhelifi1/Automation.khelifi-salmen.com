@@ -241,6 +241,7 @@ Version      : 1.0
     }
     .hero-content img {
         width: 160px;
+        z-index: 1;
     }
 
     .scroller__inner img {
@@ -260,6 +261,7 @@ Version      : 1.0
 
     .hero-content img {
         width: 160px;
+         z-index: 1;
     }
 
     .scroller__inner img {
