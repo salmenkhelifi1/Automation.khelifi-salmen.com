@@ -3502,11 +3502,11 @@ ul.blog_pagination li a:hover {
 /* --- BUTTONS & POPUP STYLES --- */
 /* --- BUTTONS & POPUP STYLES --- */
 
-/* WhatsApp Button - Left Side */
+/* WhatsApp Button - Right Side */
 .whatsapp-button {
   position: fixed;
-  bottom: 20px;
-  left: 20px;
+  bottom: 80px;
+  right: 20px;
   background-color: #25d366;
   color: white;
   width: 60px;
@@ -3526,11 +3526,11 @@ ul.blog_pagination li a:hover {
   transform: scale(1.1);
 }
 
-/* AI Chat Button - Left Side */
+/* AI Chat Button - Right Side */
 .ai-chat-button {
   position: fixed;
-  bottom: 90px; /* Positioned above the WhatsApp button */
-  left: 20px;
+  bottom: 150px; /* Positioned above the WhatsApp button */
+  right: 20px;
   background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
   color: white;
   width: 60px;
