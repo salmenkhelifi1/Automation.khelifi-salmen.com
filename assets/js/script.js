@@ -464,3 +464,86 @@ Version      : 1.0
 
 
 })(jQuery); // End jQuery
+
+
+
+
+// custem js 
+$(document).ready(function() {
+    // ... (Your other existing script code) ...
+
+    // --- AI CHATBOT SCRIPT WITH PERSISTENT CHAT & DUMMY DATA ---
+
+    const aiChatButton = $('#ai-chat-button');
+    const aiChatPopup = $('#ai-chat-popup');
+    const aiChatCloseBtn = $('#ai-chat-close-btn');
+    const aiChatForm = $('#ai-chat-form');
+    const aiQuestionInput = $('#ai-question-input');
+    const chatHistory = $('#ai-chat-history'); // Changed from ai-chat-response
+
+    // Function to scroll to the bottom of the chat
+    function scrollToBottom() {
+        chatHistory.scrollTop(chatHistory[0].scrollHeight);
+    }
+
+    // Open the AI chat popup
+    aiChatButton.on('click', function() {
+        aiChatPopup.css('display', 'flex');
+        // Add the initial welcome message if the chat is empty
+        if (chatHistory.children().length === 0) {
+            chatHistory.append('<div class="chat-message ai-message">Hello! How can I help you with your automation questions today?</div>');
+        }
+        scrollToBottom();
+    });
+
+    // Close the AI chat popup
+    aiChatCloseBtn.on('click', function() {
+        aiChatPopup.hide();
+    });
+    
+    // Close when clicking outside the content
+    aiChatPopup.on('click', function(e) {
+        if (e.target === this) {
+            aiChatPopup.hide();
+        }
+    });
+
+    // Handle form submission
+    aiChatForm.on('submit', function(e) {
+        e.preventDefault();
+        
+        const question = aiQuestionInput.val().trim();
+        if (!question) return;
+
+        // 1. Add user's message to chat history
+        chatHistory.append(`<div class="chat-message user-message">${question}</div>`);
+        aiQuestionInput.val('');
+        scrollToBottom();
+
+        // 2. Add a loading indicator
+        chatHistory.append('<div class="loading-indicator"><span>.</span><span>.</span><span>.</span></div>');
+        scrollToBottom();
+
+        // --- DUMMY RESPONSE LOGIC ---
+        const dummyResponses = [
+            "That's a great question! For a project like that, we typically start with a 'Deep-Dive Business Audit' to map out your exact needs. The cost can range from $1,500 to $5,000 depending on complexity.",
+            "Yes, we can absolutely automate that. I've helped a marketing agency build a similar 'Multi-Platform Content Engine' that saved them 12 hours of work every week.",
+            "Our process is a 4-step plan: We start by discussing your challenge, then I design a custom solution, build it for you, and finally launch it with 30 days of support. Most projects are completed within 30 days.",
+            "Thank you for asking. The best way to get a precise quote is to book a free automation audit through the contact form on our website. We can discuss your specific needs in detail there.",
+            "I specialize in tools like n8n, HubSpot, Shopify, and Slack. We can integrate with most modern business software to create a seamless automated workflow for you."
+        ];
+        
+        // 3. Simulate a network delay and show the response
+        setTimeout(() => {
+            // Remove the loading indicator
+            chatHistory.find('.loading-indicator').remove();
+
+            // Get a random response
+            const randomAnswer = dummyResponses[Math.floor(Math.random() * dummyResponses.length)];
+            
+            // Add the AI's message to chat history
+            chatHistory.append(`<div class="chat-message ai-message">${randomAnswer}</div>`);
+            scrollToBottom();
+        }, 1500); // 1.5-second delay
+    });
+});
