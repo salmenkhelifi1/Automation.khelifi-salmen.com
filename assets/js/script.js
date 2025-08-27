@@ -469,9 +469,8 @@ Version      : 1.0
 
 
 // custem js 
-
 $(document).ready(function() {
-    // --- AI CHATBOT SCRIPT WITH MEMORY & LIVE N8N WEBHOOK ---
+    // --- AI CHATBOT SCRIPT WITH TYPING ANIMATION ---
 
     const aiChatButton = $('#ai-chat-button');
     const aiChatPopup = $('#ai-chat-popup');
@@ -480,7 +479,8 @@ $(document).ready(function() {
     const aiQuestionInput = $('#ai-question-input');
     const chatHistory = $('#ai-chat-history');
 
-    let sessionId = null; // This will hold the unique ID for the conversation
+    let sessionId = null;
+    let isTyping = false; // Prevents sending new messages while AI is typing
 
     /**
      * Scrolls the chat history to the very bottom.
@@ -492,17 +492,39 @@ $(document).ready(function() {
     }
 
     /**
-     * Opens the AI chat popup, generates a session ID, and displays a welcome message.
+     * Creates a "live typing" effect for the AI's response.
+     * @param {jQuery} element - The jQuery element to type into.
+     * @param {string} text - The text to type.
+     */
+    function typeWriter(element, text) {
+        isTyping = true;
+        let i = 0;
+        element.html(""); // Clear the element first
+        const cursor = $('<span class="typing-cursor"></span>');
+        element.append(cursor);
+
+        function type() {
+            if (i < text.length) {
+                cursor.before(text.charAt(i));
+                i++;
+                scrollToBottom();
+                setTimeout(type, 30); // Adjust typing speed here (in ms)
+            } else {
+                cursor.remove(); // Remove cursor when typing is done
+                isTyping = false; // Allow user to send another message
+            }
+        }
+        type();
+    }
+
+    /**
+     * Opens the AI chat popup.
      */
     aiChatButton.on('click', function() {
         aiChatPopup.css('display', 'flex');
-        
-        // Create a new session ID if one doesn't exist for this session
         if (!sessionId) {
             sessionId = crypto.randomUUID();
-            console.log("New Chat Session ID:", sessionId); // For debugging
         }
-
         if (chatHistory.children().length === 0) {
             chatHistory.append('<div class="chat-message ai-message">Hello! How can I help you with your automation questions today?</div>');
         }
@@ -516,9 +538,6 @@ $(document).ready(function() {
         aiChatPopup.hide();
     });
     
-    /**
-     * Closes the popup if the user clicks on the background overlay.
-     */
     aiChatPopup.on('click', function(e) {
         if (e.target === this) {
             aiChatPopup.hide();
@@ -526,11 +545,13 @@ $(document).ready(function() {
     });
 
     /**
-     * Handles the form submission, now including the sessionId.
+     * Handles the form submission.
      */
     aiChatForm.on('submit', function(e) {
         e.preventDefault();
         
+        if (isTyping) return; // Don't allow sending while AI is typing
+
         const question = aiQuestionInput.val().trim();
         if (!question) return;
 
@@ -538,40 +559,36 @@ $(document).ready(function() {
         aiQuestionInput.val('');
         scrollToBottom();
 
-        chatHistory.append('<div class="loading-indicator"><span></span><span></span><span></span></div>');
+        // Create a new empty bubble for the AI response
+        const aiMessageElement = $('<div class="chat-message ai-message"></div>');
+        chatHistory.append(aiMessageElement);
+        
+        // Add the typing indicator inside the new bubble
+        const thinkingIndicator = $('<span class="typing-cursor"></span>');
+        aiMessageElement.append(thinkingIndicator);
         scrollToBottom();
 
         const webhookUrl = 'https://n8n.iwilltravelto.com/webhook/ask-ai-assistant';
 
-        // Send the question AND the sessionId to the n8n webhook
         fetch(webhookUrl, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                question: question,
-                sessionId: sessionId // Include the session ID here
-            }),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question: question, sessionId: sessionId }),
         })
         .then(response => {
-            if (!response.ok) {
-                throw new Error(`Network response was not ok: ${response.statusText}`);
-            }
+            if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
             return response.json();
         })
         .then(data => {
-            chatHistory.find('.loading-indicator').remove();
             const answer = data.output || "Sorry, I couldn't get a valid response. Please try again.";
-            chatHistory.append(`<div class="chat-message ai-message">${answer}</div>`);
-            scrollToBottom();
+            // Start the typing animation in the AI message bubble
+            typeWriter(aiMessageElement, answer);
         })
         .catch(error => {
             console.error('Error fetching from webhook:', error);
-            chatHistory.find('.loading-indicator').remove();
-            const errorMessage = "Sorry, I'm having trouble connecting to the AI assistant right now. Please try again in a moment.";
-            chatHistory.append(`<div class="chat-message ai-message">${errorMessage}</div>`);
-            scrollToBottom();
+            const errorMessage = "Sorry, I'm having trouble connecting. Please try again in a moment.";
+            // Type out the error message
+            typeWriter(aiMessageElement, errorMessage);
         });
     });
 });
