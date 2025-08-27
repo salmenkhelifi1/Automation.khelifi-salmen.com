@@ -469,81 +469,109 @@ Version      : 1.0
 
 
 // custem js 
-$(document).ready(function() {
-    // ... (Your other existing script code) ...
 
-    // --- AI CHATBOT SCRIPT WITH PERSISTENT CHAT & DUMMY DATA ---
+$(document).ready(function() {
+    // --- AI CHATBOT SCRIPT WITH MEMORY & LIVE N8N WEBHOOK ---
 
     const aiChatButton = $('#ai-chat-button');
     const aiChatPopup = $('#ai-chat-popup');
     const aiChatCloseBtn = $('#ai-chat-close-btn');
     const aiChatForm = $('#ai-chat-form');
     const aiQuestionInput = $('#ai-question-input');
-    const chatHistory = $('#ai-chat-history'); // Changed from ai-chat-response
+    const chatHistory = $('#ai-chat-history');
 
-    // Function to scroll to the bottom of the chat
+    let sessionId = null; // This will hold the unique ID for the conversation
+
+    /**
+     * Scrolls the chat history to the very bottom.
+     */
     function scrollToBottom() {
-        chatHistory.scrollTop(chatHistory[0].scrollHeight);
+        setTimeout(() => {
+            chatHistory.scrollTop(chatHistory[0].scrollHeight);
+        }, 50);
     }
 
-    // Open the AI chat popup
+    /**
+     * Opens the AI chat popup, generates a session ID, and displays a welcome message.
+     */
     aiChatButton.on('click', function() {
         aiChatPopup.css('display', 'flex');
-        // Add the initial welcome message if the chat is empty
+        
+        // Create a new session ID if one doesn't exist for this session
+        if (!sessionId) {
+            sessionId = crypto.randomUUID();
+            console.log("New Chat Session ID:", sessionId); // For debugging
+        }
+
         if (chatHistory.children().length === 0) {
             chatHistory.append('<div class="chat-message ai-message">Hello! How can I help you with your automation questions today?</div>');
         }
         scrollToBottom();
     });
 
-    // Close the AI chat popup
+    /**
+     * Closes the AI chat popup.
+     */
     aiChatCloseBtn.on('click', function() {
         aiChatPopup.hide();
     });
     
-    // Close when clicking outside the content
+    /**
+     * Closes the popup if the user clicks on the background overlay.
+     */
     aiChatPopup.on('click', function(e) {
         if (e.target === this) {
             aiChatPopup.hide();
         }
     });
 
-    // Handle form submission
+    /**
+     * Handles the form submission, now including the sessionId.
+     */
     aiChatForm.on('submit', function(e) {
         e.preventDefault();
         
         const question = aiQuestionInput.val().trim();
         if (!question) return;
 
-        // 1. Add user's message to chat history
         chatHistory.append(`<div class="chat-message user-message">${question}</div>`);
         aiQuestionInput.val('');
         scrollToBottom();
 
-        // 2. Add a loading indicator
-        chatHistory.append('<div class="loading-indicator"><span>.</span><span>.</span><span>.</span></div>');
+        chatHistory.append('<div class="loading-indicator"><span></span><span></span><span></span></div>');
         scrollToBottom();
 
-        // --- DUMMY RESPONSE LOGIC ---
-        const dummyResponses = [
-            "That's a great question! For a project like that, we typically start with a 'Deep-Dive Business Audit' to map out your exact needs. The cost can range from $1,500 to $5,000 depending on complexity.",
-            "Yes, we can absolutely automate that. I've helped a marketing agency build a similar 'Multi-Platform Content Engine' that saved them 12 hours of work every week.",
-            "Our process is a 4-step plan: We start by discussing your challenge, then I design a custom solution, build it for you, and finally launch it with 30 days of support. Most projects are completed within 30 days.",
-            "Thank you for asking. The best way to get a precise quote is to book a free automation audit through the contact form on our website. We can discuss your specific needs in detail there.",
-            "I specialize in tools like n8n, HubSpot, Shopify, and Slack. We can integrate with most modern business software to create a seamless automated workflow for you."
-        ];
-        
-        // 3. Simulate a network delay and show the response
-        setTimeout(() => {
-            // Remove the loading indicator
-            chatHistory.find('.loading-indicator').remove();
+        const webhookUrl = 'https://n8n.iwilltravelto.com/webhook/ask-ai-assistant';
 
-            // Get a random response
-            const randomAnswer = dummyResponses[Math.floor(Math.random() * dummyResponses.length)];
-            
-            // Add the AI's message to chat history
-            chatHistory.append(`<div class="chat-message ai-message">${randomAnswer}</div>`);
+        // Send the question AND the sessionId to the n8n webhook
+        fetch(webhookUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                question: question,
+                sessionId: sessionId // Include the session ID here
+            }),
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Network response was not ok: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            chatHistory.find('.loading-indicator').remove();
+            const answer = data.output || "Sorry, I couldn't get a valid response. Please try again.";
+            chatHistory.append(`<div class="chat-message ai-message">${answer}</div>`);
             scrollToBottom();
-        }, 1500); // 1.5-second delay
+        })
+        .catch(error => {
+            console.error('Error fetching from webhook:', error);
+            chatHistory.find('.loading-indicator').remove();
+            const errorMessage = "Sorry, I'm having trouble connecting to the AI assistant right now. Please try again in a moment.";
+            chatHistory.append(`<div class="chat-message ai-message">${errorMessage}</div>`);
+            scrollToBottom();
+        });
     });
 });
