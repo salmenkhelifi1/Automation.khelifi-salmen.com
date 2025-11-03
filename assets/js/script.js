@@ -265,18 +265,7 @@ Version      : 1.0
      * ----------------------------------------------------------------------------------------
      */
 
-    function scrollNav() {
-        $('.onepage li a').click(function() {
-            $(".onepage li a.active").removeClass("active");
-            $(this).addClass("active");
-
-            $('html, body').stop().animate({
-                scrollTop: $($(this).attr('href')).offset().top - 100
-            }, 1000);
-            return false;
-        });
-    }
-    scrollNav();
+    
 
 
 
@@ -522,6 +511,10 @@ $(document).ready(function() {
      */
     aiChatButton.on('click', function() {
         aiChatPopup.css('display', 'flex');
+        // a11y: focus management - move focus to input
+        aiQuestionInput.focus();
+        // a11y: store last focused element
+        aiChatPopup.data('last-focus', document.activeElement);
         if (!sessionId) {
             sessionId = crypto.randomUUID();
         }
@@ -536,11 +529,37 @@ $(document).ready(function() {
      */
     aiChatCloseBtn.on('click', function() {
         aiChatPopup.hide();
+        // a11y: restore focus to the launcher button
+        aiChatButton.focus();
     });
     
     aiChatPopup.on('click', function(e) {
         if (e.target === this) {
             aiChatPopup.hide();
+            aiChatButton.focus();
+        }
+    });
+
+    // a11y: close on Escape and trap focus within popup when open
+    $(document).on('keydown', function(e) {
+        if (aiChatPopup.is(':visible')) {
+            if (e.key === 'Escape') {
+                aiChatPopup.hide();
+                aiChatButton.focus();
+            } else if (e.key === 'Tab') {
+                const focusable = aiChatPopup.find('button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])').filter(':visible');
+                if (focusable.length) {
+                    const first = focusable[0];
+                    const last = focusable[focusable.length - 1];
+                    if (e.shiftKey && document.activeElement === first) {
+                        e.preventDefault();
+                        last.focus();
+                    } else if (!e.shiftKey && document.activeElement === last) {
+                        e.preventDefault();
+                        first.focus();
+                    }
+                }
+            }
         }
     });
 
